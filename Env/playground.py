@@ -1,8 +1,8 @@
 from DC_gym import DiscreteGymDC
 import os
 
-testclass = DiscreteGymDC(os.path.join(os.getcwd(),"Flowsheet1.fsd"))
-TAC, tops_flow, bottoms_flow, condenser_duty, reboiler_duty = testclass.step(1)
+testclass = DiscreteGymDC(os.path.join(os.getcwd(), "Flowsheet1.fsd"))
 
-TAC2, tops_flow2, bottoms_flow2, condenser_duty2, reboiler_duty2 = testclass.step(120)
-print(tops_flow, tops_flow2)
+info = []
+info.append(testclass.legal_actions[0])
+info.append(testclass.step(testclass.legal_actions[-1]))

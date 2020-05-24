@@ -1,5 +1,6 @@
 import numpy as np
 from DC_class import SimulatorDC
+from ClassDefinitions import Stream, State
 
 class DiscreteGymDC(SimulatorDC):
     """
@@ -9,20 +10,17 @@ class DiscreteGymDC(SimulatorDC):
     def __init__(self, doc_path, n_discretisations=5):
         super().__init__(doc_path)
         self.n_discretisations = n_discretisations
-        self.feed = np.array(self.get_inlet_flowrates())
-        self.n_components = self.feed.size
+        self.feed = Stream(0, np.array(self.get_inlet_flowrates()))
+        self.n_components = self.feed.flows.size
         self.max_outlet_streams = self.n_components
 
-        # for now set the state as the stream table (#TODO but later may want to include temperature and pressure)
-        self.initial_state = np.zeros((self.max_outlet_streams, self.feed.shape[0]))
-        self.initial_state[0] = self.feed
-        self.unshuffled_state = self.initial_state.copy()
+        # for now set the state as the stream table (# TODO but later may want to include temperature and pressure)
+        self.stream_table = [self.feed]
 
-        self.unshuffled_state_stream_numbers = np.zeros(self.max_outlet_streams)
-        self.unshuffled_state_stream_numbers[0] = 1
+        self.State = State(self.feed, self.max_outlet_streams)
 
-        # #TODO add a stream shuffler [it must still know which stream flows correspond to which numbers, but must shuffle the state]
-        self.state = self.unshuffled_state
+        # contains a tuple of 3 (in, tops, bottoms) stream numbers describing the connections of streams & columns
+        self.column_streams = []
 
         # Now configure action space
         self.action_names = ['stream', 'number of stages', 'reflux ratio', 'reboil ratio']
@@ -33,9 +31,14 @@ class DiscreteGymDC(SimulatorDC):
 
     def step(self, action):
         if action == self.n_actions:  # submit
-            return  # done info
-        stream = action % self.max_outlet_streams
-        # TODO set stream to inlet of column
+            reward = 0
+            done = True
+            info = {}
+            state = self.State.state
+            return state, reward, done, info
+        selected_stream_position = action % self.max_outlet_streams
+        self.set_inlet_flowrates(self.State.state[selected_stream_position])  # put the selected stream as the input to a new column
+
         n_stages = self.n_stages_options[action % (self.max_outlet_streams * self.n_discretisations) // self.max_outlet_streams]
         reflux_ratio = self.reflux_ratio_options[action % (self.max_outlet_streams * self.n_discretisations**2) // (self.max_outlet_streams * self.n_discretisations)]
         reboil_ratio = self.reboil_ratio_options[action // (self.max_outlet_streams * self.n_discretisations ** 2)]
@@ -43,14 +46,35 @@ class DiscreteGymDC(SimulatorDC):
         self.set_unit_inputs(n_stages, reflux_ratio, reboil_ratio)
         self.timed_solve()
 
-        TAC, tops_flow, bottoms_flow, condenser_duty, reboiler_duty = self.get_outputs()
+        tops_flow, bottoms_flow, TAC, condenser_duty, reboiler_duty = self.get_outputs()
 
-        # just an interim return
-        return TAC, tops_flow, bottoms_flow, condenser_duty, reboiler_duty
+        state = self.State.update_state(selected_stream_position,
+                                        Stream(tops_flow, self.State.n_streams),
+                                        Stream(bottoms_flow, self.State.n_streams))
+        reward = self.reward_calculator(tops_flow, bottoms_flow, TAC, condenser_duty, reboiler_duty)
 
-        # # TODO Now add streams with stream swappything to remove inlet stream from stream table
+        if self.State.n_streams == self.max_outlet_streams:
+            done = True
+        else:
+            done = False
+        info = {}
+        return state, reward, done, info
 
+    def reward_calculator(self, tops_flow, bottoms_flow, TAC, condenser_duty, reboiler_duty):
+        """
+        Add stuff for the value of the output streams, and operating cost
+        """
+        reward = TAC
+        return reward
 
-
-
-
+    @property
+    def legal_actions(self):
+        legal_selected_stream_position = self.State.stream_state_mapper[0:self.State.n_streams]
+        legal_actions = []
+        # TODO make this loop faster
+        for action in range(self.n_actions):
+            for stream_position in legal_selected_stream_position:
+                if action % self.max_outlet_streams == stream_position:
+                    legal_actions.append(action)
+                    break
+        return legal_actions
