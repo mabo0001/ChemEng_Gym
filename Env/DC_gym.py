@@ -30,7 +30,7 @@ class DiscreteGymDC(SimulatorDC):
         self.n_actions = self.max_outlet_streams * self.n_discretisations ** 3 + 1  # +1 for submit as final
 
     def step(self, action):
-        if action == self.n_actions:  # submit
+        if action == self.n_actions - 1:  # submit
             reward = 0
             done = True
             info = {}
@@ -44,13 +44,13 @@ class DiscreteGymDC(SimulatorDC):
         reboil_ratio = self.reboil_ratio_options[action // (self.max_outlet_streams * self.n_discretisations ** 2)]
 
         self.set_unit_inputs(n_stages, reflux_ratio, reboil_ratio)
-        self.timed_solve()
+        self.solve()
 
         tops_flow, bottoms_flow, TAC, condenser_duty, reboiler_duty = self.get_outputs()
 
         state = self.State.update_state(selected_stream_position,
-                                        Stream(tops_flow, self.State.n_streams),
-                                        Stream(bottoms_flow, self.State.n_streams))
+                                        Stream(self.State.n_streams, tops_flow),
+                                        Stream(self.State.n_streams+1, bottoms_flow))
         reward = self.reward_calculator(tops_flow, bottoms_flow, TAC, condenser_duty, reboiler_duty)
 
         if self.State.n_streams == self.max_outlet_streams:
@@ -72,9 +72,10 @@ class DiscreteGymDC(SimulatorDC):
         legal_selected_stream_position = self.State.stream_state_mapper[0:self.State.n_streams]
         legal_actions = []
         # TODO make this loop faster
-        for action in range(self.n_actions):
+        for action in range(self.n_actions - 1):
             for stream_position in legal_selected_stream_position:
                 if action % self.max_outlet_streams == stream_position:
                     legal_actions.append(action)
                     break
+        legal_actions.append(self.n_actions-1)
         return legal_actions

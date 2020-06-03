@@ -9,7 +9,6 @@ class Stream:
         """
         self.number = number
         self.flows = flows
-        self.position_in_state = "NA"
 
 
 class State:
@@ -40,7 +39,7 @@ class State:
         :param selected_stream_position: the selected stream's position in the state
         :param tops top stream (Stream Class object)
         """
-        self.streams[self.stream_state_mapper[selected_stream_position]] = tops
+        self.streams[np.where(self.stream_state_mapper == selected_stream_position)[0][0]] = tops
         self.streams.append(bottoms)
 
     def update_state(self, selected_stream_position, tops, bottoms):

@@ -59,22 +59,5 @@ class SimulatorDC:
         self.doc.GetUnit('Column_1').QueryInterface(coTypes.ICapeUtilities).Parameters.QueryInterface(coTypes.ICapeCollection).Item(
             "Reboil ratio").QueryInterface(coTypes.ICapeParameter).value = float(reboil_ratio)
 
-
-    def timed_solve(self, time=30):
+    def solve(self):
         self.doc.Solve()
-        """Limits solve time, returns 1 if solve didn't work"""
-        """
-        p = Process(target=self.doc.Solve)
-        p.start()
-        # Wait for 10 seconds or until process finishes
-        p.join(time)
-        # If thread is still active
-        if p.is_alive():
-            print("Still running after 30 seconds so must kill")
-            # Terminate
-            p.terminate()
-            p.join()
-            return 1
-        else:
-            return 0
-        """
