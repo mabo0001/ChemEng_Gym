@@ -18,8 +18,10 @@ class SimulatorDC:
         doc_path: path to flowsheet.fsd COCO file
         :param doc_path:
         """
+        self.doc_path = doc_path
         self.doc = comtypes.client.CreateObject('COCO_COFE.Document', interface=cofeTypes.ICOFEDocument)
         self.doc.Import(doc_path)
+        self.original_flowrates = self.get_inlet_flowrates()
 
     def set_inlet_flowrates(self, flowrates):
         try:
@@ -60,4 +62,10 @@ class SimulatorDC:
             "Reboil ratio").QueryInterface(coTypes.ICapeParameter).value = float(reboil_ratio)
 
     def solve(self):
-        self.doc.Solve()
+        try:
+            self.doc.Solve()
+        except COMError as err:
+            print(err)
+
+    def reset_flowsheet(self):
+        self.set_inlet_flowrates(self.original_flowrates)

@@ -1,6 +1,6 @@
 import numpy as np
-from DC_class import SimulatorDC
-from ClassDefinitions import Stream, State
+from Env.DC_class import SimulatorDC
+from Env.ClassDefinitions import Stream, State
 
 class DiscreteGymDC(SimulatorDC):
     """
@@ -24,7 +24,7 @@ class DiscreteGymDC(SimulatorDC):
 
         # Now configure action space
         self.action_names = ['stream', 'number of stages', 'reflux ratio', 'reboil ratio']
-        self.n_stages_options = np.linspace(10, 50, n_discretisations)
+        self.n_stages_options = np.linspace(10, 50, n_discretisations).astype('int')
         self.reflux_ratio_options = np.linspace(0.1, 5, n_discretisations)
         self.reboil_ratio_options = np.linspace(0.1, 5, n_discretisations)
         self.n_actions = self.max_outlet_streams * self.n_discretisations ** 3 + 1  # +1 for submit as final
@@ -79,3 +79,10 @@ class DiscreteGymDC(SimulatorDC):
                     break
         legal_actions.append(self.n_actions-1)
         return legal_actions
+
+    def reset(self):
+        self.reset_flowsheet()
+        self.feed = Stream(0, np.array(self.get_inlet_flowrates()))
+        self.stream_table = [self.feed]
+        self.State = State(self.feed, self.max_outlet_streams)
+        self.column_streams = []
