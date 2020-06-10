@@ -3,10 +3,11 @@ from tensorflow.keras.models import Model
 import tensorflow as tf
 
 class DQN:
-    def __init__(self, n_actions, state_shape, layer_size=32, schedule_lr=False, decay_steps=1000, decay_rate=0.9):
+    def __init__(self, n_actions, state_shape, layer_size=40, depth=4, schedule_lr=False, decay_steps=1000, decay_rate=0.9):
         self.n_actions = n_actions
         self.state_shape = state_shape
         self.layer_size = layer_size
+        self.depth = depth
         self.schedule_lr = schedule_lr
         self.decay_steps = decay_steps
         self.decay_rate = decay_rate
@@ -17,14 +18,17 @@ class DQN:
         input_state = Input(shape=self.state_shape, name="input")
         flat_input = Flatten()(input_state)
 
-        dense1 = Dense(self.layer_size, activation='relu', name="dense1")(flat_input)
-        dense2 = Dense(self.layer_size, activation='relu', name="dense2")(dense1)
-        dense3 = Dense(self.layer_size, activation='relu', name="dense3")(dense2)
+        dense_layers = []
+        dense_layers.append(Dense(self.layer_size, activation='relu', name="dense0")(flat_input))
+        for i in range(self.depth-1):
+            dense_layers.append(
+                Dense(self.layer_size, activation='relu', name=f"dense{i+1}")(dense_layers[-1])
+                                )
 
-        value_fc = Dense(self.n_actions, activation="relu", name="value_fc")(dense3)
+        value_fc = Dense(self.n_actions, activation="relu", name="value_fc")(dense_layers[-1])
         value = Dense(1, activation="linear", name="value")(value_fc)
 
-        advantage_fc = Dense(self.n_actions, activation="relu", name="advantage_fc")(dense3)
+        advantage_fc = Dense(self.n_actions, activation="relu", name="advantage_fc")(dense_layers[-1])
         advantage = Dense(self.n_actions, activation="linear", name="advantage")(advantage_fc)
 
         Qvalues = value + tf.math.subtract(advantage, tf.math.reduce_mean(advantage, axis=1, keepdims=True))
@@ -37,7 +41,7 @@ class DQN:
                 decay_rate=self.decay_rate)
             optimizer = tf.keras.optimizers.SGD(learning_rate=lr_schedule)
         else:
-            optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
+            optimizer = tf.keras.optimizers.Adam()
         model.compile(loss="mse", optimizer=optimizer)
 
         return model

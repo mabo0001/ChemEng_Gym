@@ -12,12 +12,12 @@ class Stream:
 
 
 class State:
-    def __init__(self, feed_stream, max_streams):
+    def __init__(self, feed_stream, max_streams, shuffle=True):
         self.streams = [feed_stream]
         self.max_streams = max_streams
+        self.shuffle = shuffle
         self.stream_state_mapper = np.arange(self.max_streams)
         self.blank_state = np.zeros((self.max_streams, feed_stream.flows.size))
-
         self.rng = np.random.default_rng()
         self.state = self.create_state()
 
@@ -26,8 +26,10 @@ class State:
         Turns the list of streams into the state (np.array) of the streams in a random (but known) order,
         0's for null steams
         """
-
-        self.rng.shuffle(self.stream_state_mapper)  # shuffle mapper
+        if self.shuffle is True:
+            self.rng.shuffle(self.stream_state_mapper)  # shuffle mapper
+        else:
+            pass  # keep stream mapper unshuffled
         self.state = self.blank_state
         # assign streams to random locations in the state
         # can make the below loop quicker - for now write it out to make it clear

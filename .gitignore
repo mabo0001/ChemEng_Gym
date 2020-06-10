@@ -6,3 +6,5 @@
 *.pyc
 *.pyc
 *.pyc
+*.pyc
+Env/__pycache__/DC_class.cpython-37.pyc
