@@ -5,9 +5,10 @@ from Env.ClassDefinitions import Stream, State
 class DiscreteGymDC(SimulatorDC):
     """
     First let's make an env with a big flat discrete action space
+    This env doesn't have temperature or pressure
     """
 
-    def __init__(self, doc_path, n_discretisations=5, *args):
+    def __init__(self, doc_path, n_discretisations=5, **kwargs):
         """
         *args: can pass shuffle=True to Stream
         """
@@ -17,19 +18,19 @@ class DiscreteGymDC(SimulatorDC):
         self.n_components = self.feed.flows.size
         self.max_outlet_streams = self.n_components
 
-        # for now set the state as the stream table (# TODO but later may want to include temperature and pressure)
+        # for now set the state as the stream table
         self.stream_table = [self.feed]
 
-        self.State = State(self.feed, self.max_outlet_streams, *args)
+        self.State = State(self.feed, self.max_outlet_streams, **kwargs)
 
         # contains a tuple of 3 (in, tops, bottoms) stream numbers describing the connections of streams & columns
         self.column_streams = []
 
         # Now configure action space
         self.action_names = ['stream', 'number of stages', 'reflux ratio', 'reboil ratio']
-        self.n_stages_options = np.linspace(20, 30, n_discretisations).astype('int')
-        self.reflux_ratio_options = np.linspace(1, 2, n_discretisations)
-        self.reboil_ratio_options = np.linspace(1, 2, n_discretisations)
+        self.n_stages_options = np.linspace(10, 50, n_discretisations).astype('int')
+        self.reflux_ratio_options = np.linspace(0.1, 5, n_discretisations)
+        self.reboil_ratio_options = np.linspace(0., 5, n_discretisations)
         self.n_actions = self.max_outlet_streams * self.n_discretisations ** 3 + 1  # +1 for submit as final
 
     def step(self, action):

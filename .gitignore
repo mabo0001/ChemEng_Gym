@@ -3,8 +3,6 @@
 .idea/inspectionProfiles/profiles_settings.xml
 *.xml
 *.pyc
-*.pyc
-*.pyc
-*.pyc
-*.pyc
+*checkpoint.ipynb
 Env/__pycache__/DC_class.cpython-37.pyc
+Env2/.ipynb_checkpoints/Pressure-checkpoint.ipynb
