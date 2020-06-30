@@ -1,6 +1,6 @@
 import numpy as np
-from Env2.DC_class import SimulatorDC
-from Env2.ClassDefinitions import Stream, State
+from Env.DC_class import SimulatorDC
+from Env.ClassDefinitions import Stream, State
 
 import comtypes.client
 import comtypes.gen
@@ -47,7 +47,11 @@ class DiscreteGymDC(SimulatorDC):
         self.reflux_ratio_options = np.linspace(1.5, 3, n_discretisations)
         self.reboil_ratio_options = np.linspace(1.5, 3, n_discretisations)
         self.pressure_drop_options = np.linspace(0, self.max_pressure/2, n_discretisations)  #  assumes max pressure drop of 50%
-        self.n_actions = self.max_outlet_streams * self.n_discretisations ** 4 + 1  # +1 for submit as final
+        self.n_actions = self.max_outlet_streams * self.n_discretisations ** 4 + 1  # +1 for submit as
+
+        self.failed_solves = 0
+        self.error_counter = {"total_solves": 0,
+                              "error_solves": 0}  # to get a general idea of how many solves are going wrong
 
     def step(self, action):
         if action == self.n_actions - 1:  # submit
@@ -70,8 +74,21 @@ class DiscreteGymDC(SimulatorDC):
         pressure_drop = self.pressure_drop_options[action // (self.max_outlet_streams * self.n_discretisations ** 3)]
 
         self.set_unit_inputs(n_stages, reflux_ratio, reboil_ratio, pressure_drop)
-        self.solve()
+        sucessful_solve = self.solve()
+        if sucessful_solve is False:  # This is currently just telling the
+            self.failed_solves += 1
+            self.error_counter["error_solves"] += 1
+            if self.failed_solves >= 2: # reset if we fail twice
+                done = True
+            else:
+                done = False
 
+            reward = 0
+            info = {"failed solve": 1}
+            state = self.State.state
+            return state, reward, done, info
+
+        self.error_counter["total_solves"] += 1
         TAC, condenser_duty, reboiler_duty = self.get_outputs()
 
         tops_info, bottoms_info = self.get_outlet_info()
@@ -124,3 +141,5 @@ class DiscreteGymDC(SimulatorDC):
         self.stream_table = [self.original_feed]
         self.State = State(self.original_feed, self.max_outlet_streams)
         self.column_streams = []
+        self.failed_solves = 0
+        return self.State.state

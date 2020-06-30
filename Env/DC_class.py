@@ -129,8 +129,10 @@ class SimulatorDC:
     def solve(self):
         try:
             self.doc.Solve()
+            return True  # 0 for sucess
         except COMError as err:
-            print(err)
+            #print(err)   #  for now let's not print as number of errors is stored in the DC_gym
+            return False  # for failure
 
     def reset_flowsheet(self):
         self.set_inlet_stream(self.original_conditions["flows"], self.original_conditions["temperature"],

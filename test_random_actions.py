@@ -5,13 +5,6 @@ import time
 COCO_file = "Env\ChemSepExample.fsd"
 
 env = DiscreteGymDC(os.path.join(os.getcwd(), COCO_file), n_discretisations=3)
-"""
-info = []
-action = env.legal_actions[0]
-info.append(env.step(action))
-action = env.legal_actions[-2]
-info.append(env.step(action))
-"""
 begin = time.time()
 episodes = 0
 for i in range(100):
