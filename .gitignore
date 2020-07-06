@@ -6,3 +6,6 @@
 *checkpoint.ipynb
 Env/__pycache__/DC_class.cpython-37.pyc
 Env2/.ipynb_checkpoints/Pressure-checkpoint.ipynb
+Env/MacabeError.fsd
+Env/ChemSepExample_originalflowrates.fsd
+*.pyc
