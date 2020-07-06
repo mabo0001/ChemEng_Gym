@@ -21,10 +21,21 @@ class DiscreteGymDC(SimulatorDC):
     """
     This is the gym for the ChemSep problem that inludes temperature and pressure drops
     First let's make an env with a big flat discrete action space
-    """
 
-    def __init__(self, doc_path, n_discretisations=5):
-        super().__init__(doc_path)
+    COCO document configuration:
+        Flowrate time units: per hour
+        Stream value costs: in same mass/mole unit as flowrate
+        Must have TAC, number of stages,
+        # TODO create autoconfigure so user can just input a single stream - autoconfigure must add first unit (XML) with desired variables accesible
+        # could even make interface where user just specifies via python which components at which conditions to seperate
+    """
+    def __init__(self, document_path, sales_prices,
+                 annual_operating_hours=8000, required_purity=0.95, n_discretisations=5):
+        super().__init__(document_path)
+        self.sales_prices = sales_prices
+        self.required_purity = required_purity
+        self.annual_operating_hours = annual_operating_hours
+
         self.n_discretisations = n_discretisations
         feed_conditions = self.get_inlet_stream_conditions()
         self.original_feed = Stream(0, feed_conditions["flows"],
@@ -75,6 +86,7 @@ class DiscreteGymDC(SimulatorDC):
 
         self.set_unit_inputs(n_stages, reflux_ratio, reboil_ratio, pressure_drop)
         sucessful_solve = self.solve()
+        self.error_counter["total_solves"] += 1
         if sucessful_solve is False:  # This is currently just telling the
             self.failed_solves += 1
             self.error_counter["error_solves"] += 1
@@ -88,7 +100,7 @@ class DiscreteGymDC(SimulatorDC):
             state = self.State.state
             return state, reward, done, info
 
-        self.error_counter["total_solves"] += 1
+        # TAC includes operating costs so we actually don't need these duties
         TAC, condenser_duty, reboiler_duty = self.get_outputs()
 
         tops_info, bottoms_info = self.get_outlet_info()
@@ -97,7 +109,7 @@ class DiscreteGymDC(SimulatorDC):
         state = self.State.update_state(selected_stream_position,
                                         Stream(self.State.n_streams, tops_flow, tops_temperature, tops_pressure),
                                         Stream(self.State.n_streams+1, bottoms_flow, bottoms_temperature, bottoms_pressure))
-        reward = self.reward_calculator(tops_flow, bottoms_flow, TAC, condenser_duty, reboiler_duty)
+        reward = self.reward_calculator(selected_stream.flows, tops_flow, bottoms_flow, TAC)
 
         if self.State.n_streams == self.max_outlet_streams:
             done = True
@@ -107,12 +119,6 @@ class DiscreteGymDC(SimulatorDC):
         self.import_file()  # current workaround is to reset the file after each solve
         return state, reward, done, info
 
-    def reward_calculator(self, tops_flow, bottoms_flow, TAC, condenser_duty, reboiler_duty):
-        """
-        Add stuff for the value of the output streams, and operating cost
-        """
-        reward = TAC
-        return reward
 
     @property
     def legal_actions(self):
@@ -143,3 +149,15 @@ class DiscreteGymDC(SimulatorDC):
         self.column_streams = []
         self.failed_solves = 0
         return self.State.state
+
+    def reward_calculator(self, inlet_flow, tops_flow, bottoms_flow, TAC):
+        annual_revenue = self.stream_value(tops_flow) + self.stream_value(bottoms_flow) - self.stream_value(inlet_flow)
+        reward = annual_revenue - TAC  # this represents the direct change annual profit caused by the additional column
+        return reward
+
+    def stream_value(self, stream_flow):
+        if max(stream_flow / sum(stream_flow)) >= self.required_purity:
+            revenue_per_annum = max(stream_flow) * self.sales_prices[np.argmax(stream_flow)] * self.annual_operating_hours
+            return revenue_per_annum
+        else:
+            return 0

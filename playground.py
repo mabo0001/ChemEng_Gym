@@ -3,8 +3,8 @@ from Env.DC_gym import DiscreteGymDC
 import numpy as np
 import time
 COCO_file = "Env\ChemSepExample.fsd"
-
-env = DiscreteGymDC(os.path.join(os.getcwd(), COCO_file), n_discretisations=3)
+sales_prices = [1,1,1,1,1,1]
+env = DiscreteGymDC(os.path.join(os.getcwd(), COCO_file), sales_prices, n_discretisations=3)
 """
 info = []
 action = env.legal_actions[0]
@@ -14,7 +14,7 @@ info.append(env.step(action))
 """
 begin = time.time()
 episodes = 0
-for i in range(100):
+for i in range(10):
     print(f"Solve {i}")
     action = np.random.choice(env.legal_actions)
     next_state, reward, done, info = env.step(action)

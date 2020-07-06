@@ -4,6 +4,7 @@ from comtypes import COMError
 from comtypes.automation import VARIANT
 import array
 from multiprocessing import Process
+import numpy as np
 
 # tell comtypes to load type libs
 cofeTlb = ('{0D1006C7-6086-4838-89FC-FBDCC0E98780}', 1, 0)  # COFE type lib
@@ -43,8 +44,8 @@ class SimulatorDC:
 
     def get_inlet_stream_conditions(self):
         conditions = {
-                "flows": self.doc.GetStream('1').QueryInterface(coTypes.ICapeThermoMaterial).
-                    GetOverallProp("flow", "mole"),
+                "flows": np.array(self.doc.GetStream('1').QueryInterface(coTypes.ICapeThermoMaterial).
+                    GetOverallProp("flow", "mole")),
                 "temperature": self.doc.GetStream('1').QueryInterface(coTypes.ICapeThermoMaterial).
                     GetOverallProp("temperature", "")[0],
                 "pressure": self.doc.GetStream('1').QueryInterface(coTypes.ICapeThermoMaterial).
@@ -53,15 +54,15 @@ class SimulatorDC:
         return conditions
 
     def get_outlet_info(self):
-        tops_flows = self.doc.GetStream('2').QueryInterface(coTypes.ICapeThermoMaterial).GetOverallProp("flow",
-                                                                                                           "mole")
+        tops_flows = np.array(self.doc.GetStream('2').QueryInterface(coTypes.ICapeThermoMaterial).GetOverallProp("flow",
+                                                                                                           "mole"))
         tops_temperature = \
             self.doc.GetStream('2').QueryInterface(coTypes.ICapeThermoMaterial).GetOverallProp("temperature", "")[0]
         tops_pressure = \
             self.doc.GetStream('2').QueryInterface(coTypes.ICapeThermoMaterial).GetOverallProp("pressure", "")[0]
 
-        bottoms_flows = self.doc.GetStream('3').QueryInterface(coTypes.ICapeThermoMaterial).GetOverallProp("flow",
-                                                                                                              "mole")
+        bottoms_flows = np.array(self.doc.GetStream('3').QueryInterface(coTypes.ICapeThermoMaterial).GetOverallProp("flow",
+                                                                                                              "mole"))
         bottoms_temperature = \
             self.doc.GetStream('3').QueryInterface(coTypes.ICapeThermoMaterial).GetOverallProp("temperature", "")[0]
         bottoms_pressure = \

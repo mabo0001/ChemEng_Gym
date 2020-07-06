@@ -8,8 +8,9 @@ class Stream:
         :param flows: stream flowrates in moles, numpy array
         :param temperature: stream temperature
         """
+        assert type(flows) == np.ndarray
         self.number = number
-        self.flows = list(flows)
+        self.flows = flows
         self.temperature = temperature
         self.pressure = pressure
 
@@ -27,7 +28,7 @@ class State:
         self.create_state()
 
     def create_state(self):
-        self.state[0:self.n_streams] = [stream.flows + [stream.temperature, stream.pressure] for stream in self.streams]
+        self.state[0:self.n_streams] = np.array([list(stream.flows) + [stream.temperature, stream.pressure] for stream in self.streams])
 
     def update_streams(self, selected_stream_position, tops, bottoms):
         """
