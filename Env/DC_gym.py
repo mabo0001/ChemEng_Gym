@@ -8,6 +8,8 @@ from comtypes import COMError
 from comtypes.automation import VARIANT
 import array
 from multiprocessing import Process
+import gym
+from gym import spaces
 
 # tell comtypes to load type libs
 cofeTlb = ('{0D1006C7-6086-4838-89FC-FBDCC0E98780}', 1, 0)  # COFE type lib
@@ -64,6 +66,10 @@ class DiscreteGymDC(SimulatorDC):
         self.error_counter = {"total_solves": 0,
                               "error_solves": 0}  # to get a general idea of how many solves are going wrong
 
+        # define gym space objects
+        self.action_space = spaces.Discrete(self.n_actions)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=self.State.state.shape)
+
     def step(self, action):
         if action == self.n_actions - 1:  # submit
             reward = 0
@@ -117,7 +123,7 @@ class DiscreteGymDC(SimulatorDC):
             done = False
         info = {}
         self.import_file()  # current workaround is to reset the file after each solve
-        return state, reward, done, info
+        return state.copy(), reward, done, info
 
 
     @property
@@ -148,7 +154,7 @@ class DiscreteGymDC(SimulatorDC):
         self.State = State(self.original_feed, self.max_outlet_streams)
         self.column_streams = []
         self.failed_solves = 0
-        return self.State.state
+        return self.State.state.copy()
 
     def reward_calculator(self, inlet_flow, tops_flow, bottoms_flow, TAC):
         annual_revenue = self.stream_value(tops_flow) + self.stream_value(bottoms_flow) - self.stream_value(inlet_flow)
